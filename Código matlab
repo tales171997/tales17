@@ -1,0 +1,52 @@
+function varargout = GUI_P3(varargin)
+
+gui_Singleton = 1;
+gui_State = struct('gui_Name',       mfilename, ...
+                   'gui_Singleton',  gui_Singleton, ...
+                   'gui_OpeningFcn', @GUI_P3_OpeningFcn, ...
+                   'gui_OutputFcn',  @GUI_P3_OutputFcn, ...
+                   'gui_LayoutFcn',  [] , ...
+                   'gui_Callback',   []);
+if nargin && ischar(varargin{1})
+    gui_State.gui_Callback = str2func(varargin{1});
+end
+
+if nargout
+    [varargout{1:nargout}] = gui_mainfcn(gui_State, varargin{:});
+else
+    gui_mainfcn(gui_State, varargin{:});
+end
+
+function GUI_P3_OpeningFcn(hObject, eventdata, handles, varargin)
+handles.output = hObject;
+guidata(hObject, handles);
+
+function varargout = GUI_P3_OutputFcn(hObject, eventdata, handles) 
+varargout{1} = handles.output;
+
+function OBTER_AMOSTRAS_BT_Callback(hObject, eventdata, handles)
+delete(instrfind); 
+dados = serial('COM6');     %define "dados" como a porta "COM6"
+set(dados,'BaudRate',9600); %define frequência de comunicação
+set(dados,'Parity','none'); %define quantidade de bits de paridade (0)
+set(dados,'FlowControl','hardware');
+set(dados,'DataBits',8);    %define a quantidade de bits de frame 
+set(dados,'StopBit',1);     % define a quantidade de stop bits
+fopen(dados);                  %inicia a comunicação na porta 6 
+t=1;
+while(t<=200)      %Esta função foi implementada para poder obter 
+a = fgetl(dados);  %200 amostras da porta serial, imprimindo-as na
+fprintf('%s',a);   %janela de comando e após, gerando o gráfico de 200 
+fprintf('\n');     % pontos, espaçados em 0.1. 
+x(t) = t*0.1;
+y(t) = str2num(a);  %esta linha de comando transforma a string,
+t=t+1;              %proveniente da comunicação serial num número
+a=0;                %para que possa ser armazenado no vetor y
+end
+grid; plot(x,y);       %Os demais parâmetros são para a geração do gráfico        
+axis ([0.1 20 0 300]);  % e da tabela de dados em .txt
+M = [x;y];
+tab = fopen('DADOS_LDR.txt','w');
+fprintf(tab,'%6s %12s\n','tempo','Leitura');
+fprintf(tab,'%6.2f %12.2f\n',M);
+fclose(tab);
