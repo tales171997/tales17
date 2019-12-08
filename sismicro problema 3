@@ -1,0 +1,70 @@
+#include <avr/io.h>
+#include <util/delay.h>
+#define BAUDRATE 9600
+#define UBRRVAL ((F_CPU/(BAUDRATE*16UL))-1)  // cálculo do valor a ser implementado no registrador UBRR0;
+
+void envia_dado(char z){  // função para envio de caracteres
+  _delay_ms(10);
+  while (!(UCSR0A & (1<<UDRE0))); // Aguarda para que possatransmitir o dado 
+  UDR0 = z;
+ }
+
+ void analisa(int x){         // Esta função é uma função complementar da seguinte 
+  if (x==0) envia_dado('0');  // abaixo e é utilizada para envio de bits serialmente
+  else if (x==1) envia_dado ('1'); else if (x==2) envia_dado ('2');
+  else if (x==3) envia_dado ('3'); else if (x==4) envia_dado ('4'); 
+  else if (x==5) envia_dado ('5'); else if (x==6) envia_dado ('6'); 
+  else if (x==7) envia_dado ('7'); else if (x==8) envia_dado ('8'); 
+  else envia_dado ('9');
+ }
+
+void envia_bit_a_bit(int y){ // Esta função foi implementada para poder separar 
+int a=0,a1=0,a2=0,a3=0;      // por dígitos um valor que se deseja transmitir
+ a=y;                       // Cada dígito separado a ser enviado é identificado na função acima "analisa".
+ a1=a/1000;                 // Esta função é específica para valores de até 4 bits
+    if (a>=1000) {a=a-1000;} 
+ a2=a/100;
+    if (a>=100) {a=a-(a2*100);}
+ a3=a/10;
+ a=a-(a3*10);
+ analisa(a1);
+ analisa(a2);
+ analisa(a3);
+ analisa(a);
+ envia_dado('\n');
+ }
+
+   void inicia_regs_com(){            // Esta é a função implementada
+                                     //necessária para habilitar e configurar os registradores 
+                                     //para comunicação serial pela USART
+   UCSR0B =(1<<TXEN0)|(1<<RXEN0);// Habilita a Transmissão e recepção de dados
+   UCSR0C =(1<<UCSZ00)|(1<<UCSZ01); // Define tamanho dos dados com de 8bits
+   UBRR0H = (UBRRVAL>>8);
+   UBRR0L = UBRRVAL;
+  }
+  
+int main(void)
+{  inicia_regs_com();   // Inicia configuração dos registradores de comunicação
+   DDRB = 0x07;
+   ADMUX = 0b11000010;  //Tensão de Referência = 1,1V interna.
+   ADCSRA = 0b11100111; //Define preescaler de leitura=128. Habilita o ADC e inicia primeira conversão.
+   
+ while (1)             // Este laço foi criado apenas para visualizar externamente o intervalo
+    {                  //De possíveis valores para o valor de conversão ADC
+  if (ADC < 75){       //Esta implementação facilitou muitos testes durante a confecção
+   PORTB = 0b00000100; //Do código
+   envia_bit_a_bit(ADC);
+ }
+ 
+else if (ADC>80 && ADC<=130){
+  PORTB = 0b00000010;
+  envia_bit_a_bit(ADC);
+ }
+ 
+else {
+  PORTB = 0b00000001;
+  envia_bit_a_bit(ADC);
+ }   
+  
+}
+}
